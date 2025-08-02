@@ -36,21 +36,21 @@ if [ "$first_time" = "yes" ]; then
         apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
         systemctl enable docker
 
-        # perform rt-patch
-        echo -e "\nPerform realtime patch of kernel \n"
+        # # perform rt-patch
+        # echo -e "\nPerform realtime patch of kernel \n"
 
-        apt update && apt install ubuntu-advantage-tools
-        pro attach $UBUNTU_PRO_TOKEN
-        pro enable realtime-kernel
+        # apt update && apt install ubuntu-advantage-tools
+        # pro attach $UBUNTU_PRO_TOKEN
+        # pro enable realtime-kernel
 
-        # cpu frequency scaling
-        echo -e "\nSet cpu frequency scaling settings \n"
+        # # cpu frequency scaling
+        # echo -e "\nSet cpu frequency scaling settings \n"
 
-        apt install cpufrequtils -y
-        systemctl disable ondemand
-        systemctl enable cpufrequtils
-        sh -c 'echo "GOVERNOR=performance" > /etc/default/cpufrequtils'
-        systemctl daemon-reload && sudo systemctl restart cpufrequtils
+        # apt install cpufrequtils -y
+        # systemctl disable ondemand
+        # systemctl enable cpufrequtils
+        # sh -c 'echo "GOVERNOR=performance" > /etc/default/cpufrequtils'
+        # systemctl daemon-reload && sudo systemctl restart cpufrequtils
 
 else
     echo -e "\nWelcome back!\n"
@@ -73,7 +73,7 @@ export ROBOT_SERIAL_NUMBER=$robot_serial_number
 export HAND_CAMERA_ID=$hand_camera_id
 export VARIED_CAMERA_1_ID=$varied_camera_1_id
 export VARIED_CAMERA_2_ID=$varied_camera_2_id
-export UBUNTU_PRO_TOKEN=$ubuntu_pro_token
+# export UBUNTU_PRO_TOKEN=$ubuntu_pro_token
 rm temp_env_vars.sh
 
 if [ "$ROBOT_TYPE" == "panda" ]; then
@@ -91,7 +91,7 @@ if [ "$first_time" = "yes" ]; then
 
         DOCKER_COMPOSE_DIR="$ROOT_DIR/.docker/nuc"
         DOCKER_COMPOSE_FILE="$DOCKER_COMPOSE_DIR/docker-compose-nuc.yaml"
-        cd $DOCKER_COMPOSE_DIR && docker-compose -f $DOCKER_COMPOSE_FILE build
+        cd $DOCKER_COMPOSE_DIR && docker compose -f $DOCKER_COMPOSE_FILE build --no-cache
 fi
 
 # find ethernet interface on device
