@@ -19,8 +19,15 @@ ENV NUC_IP=${NUC_IP}
 # base system installations
 RUN apt-get update && \
     apt-get install -y software-properties-common build-essential sudo git curl wget python3-pip libspdlog-dev \
-    libeigen3-dev lsb-release ffmpeg libsm6 libxext6 && \
+    libeigen3-dev lsb-release ffmpeg libsm6 libxext6 libpoco-dev libboost-all-dev pkg-config doxygen && \
     apt-get upgrade -y 
+
+# upgrade GCC to version 10
+RUN add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
+    apt-get update && \
+    apt-get install -y gcc-10 g++-10 && \
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && \
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100
 
 # install latest cmake version
 RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && \
@@ -40,11 +47,39 @@ RUN wget \
     && rm -f Miniconda3-latest-Linux-x86_64.sh
 ENV PATH /root/miniconda3/bin:$PATH
 
-# setup polymetis conda env
+
+# Accept Conda Terms of Service
+RUN conda config --set channel_priority strict && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+
+
+# # setup polymetis conda env
+# WORKDIR ${NUC_POLYMETIS_DIR}
+# RUN conda env create -f ./polymetis/environment.yml && \
+#     conda run -n polymetis-local pip install -e ./polymetis
+# SHELL ["conda", "run", "-n", "polymetis-local", "/bin/bash", "-c"]
+
+
+# setup polymetis conda env manually (avoid VTune / ITT issues)
 WORKDIR ${NUC_POLYMETIS_DIR}
-RUN conda env create -f ./polymetis/environment.yml && \
-    conda run -n polymetis-local pip install -e ./polymetis
+RUN conda create -n polymetis-local python=3.8 -y && \
+    conda run -n polymetis-local pip install torch==2.0.1 --extra-index-url https://download.pytorch.org/whl/cpu && \
+    conda run -n polymetis-local pip install -e ./polymetis && \
+    conda run -n polymetis-local conda install -c conda-forge pinocchio -y && \
+    conda run -n polymetis-local conda install -c conda-forge grpc-cpp -y
+
 SHELL ["conda", "run", "-n", "polymetis-local", "/bin/bash", "-c"]
+
+# build and install yaml-cpp from source
+RUN git clone https://github.com/jbeder/yaml-cpp.git /tmp/yaml-cpp && \
+    cd /tmp/yaml-cpp && \
+    mkdir build && cd build && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DYAML_CPP_BUILD_TESTS=OFF -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=1" && \
+    make -j$(nproc) && \
+    make install && \
+    ldconfig && \
+    rm -rf /tmp/yaml-cpp
 
 # build libfranka and polymetis
 RUN ./scripts/build_libfranka.sh ${LIBFRANKA_VERSION} && \
