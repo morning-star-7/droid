@@ -40,20 +40,20 @@ if [ "$first_time" = "yes" ]; then
 	git lfs install # has to be run only once on a single user account
 	cd $ROOT_DIR && git submodule update --recursive --remote --init
 	
-	# install docker
-	echo -e "Install docker \n"
+	# # install docker
+	# echo -e "Install docker \n"
 
-	apt-get update
-	apt-get install ca-certificates curl gnupg
-	install -m 0755 -d /etc/apt/keyrings
-	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-	chmod a+r /etc/apt/keyrings/docker.gpg
-	echo \
-	  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-	  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
-	  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-	apt-get update
-	apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+	# apt-get update
+	# apt-get install ca-certificates curl gnupg
+	# install -m 0755 -d /etc/apt/keyrings
+	# curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+	# chmod a+r /etc/apt/keyrings/docker.gpg
+	# echo \
+	#   "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+	#   "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+	#   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+	# apt-get update
+	# apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 	# install and configure nvidia container toolkit
 	echo -e "Install Nvidia container toolkit \n"
@@ -72,47 +72,47 @@ else
 	echo -e "\nWelcome back!\n"
 fi
 
-read -p "Have you installed the oculus_reader APK file on your Oculus Quest 2? (yes/no): " first_time
+# read -p "Have you installed the oculus_reader APK file on your Oculus Quest 2? (yes/no): " first_time
 
-if [ "$first_time" = "no" ]; then
+# if [ "$first_time" = "no" ]; then
 
-	# install APK on Oculus device
-	echo -e "Install APK on oculus device \n"
+# 	# install APK on Oculus device
+# 	echo -e "Install APK on oculus device \n"
 
-	#usermod -aG plugdev $LOGNAME
-	#newgrp plugdev
-	apt install -y android-tools-adb android-sdk-platform-tools-common
-	adb start-server
+# 	#usermod -aG plugdev $LOGNAME
+# 	#newgrp plugdev
+# 	apt install -y android-tools-adb android-sdk-platform-tools-common
+# 	adb start-server
 
-	read -p "Connect your Oculus Quest 2 via USB-C, and approve USB debugging within device. Confirm with y when complete? (y/n): " confirmation
+# 	read -p "Connect your Oculus Quest 2 via USB-C, and approve USB debugging within device. Confirm with y when complete? (y/n): " confirmation
 	    
-	if [ "$confirmation" != "y" ] && [ "$confirmation" != "Y" ]; then
-		return 1
-	else
-		return exit 1
-	fi
+# 	if [ "$confirmation" != "y" ] && [ "$confirmation" != "Y" ]; then
+# 		return 1
+# 	else
+# 		return exit 1
+# 	fi
 
 
-	# Retry loop
-	max_retries=3
-	retry_count=0
+# 	# Retry loop
+# 	max_retries=3
+# 	retry_count=0
 
-	while ! confirm_devices; do
-	    ((retry_count++))
-	    if [ "$retry_count" -ge "$max_retries" ]; then
-		echo "Max retry attempts reached. Aborting installation."
-		exit 1
-	    fi
-	    echo "Retrying..."
-	done
+# 	while ! confirm_devices; do
+# 	    ((retry_count++))
+# 	    if [ "$retry_count" -ge "$max_retries" ]; then
+# 		echo "Max retry attempts reached. Aborting installation."
+# 		exit 1
+# 	    fi
+# 	    echo "Retrying..."
+# 	done
 
-	echo $ROOT_DIR
-	pip3 install -e $ROOT_DIR/droid/oculus_reader
-	python3 $ROOT_DIR/droid/oculus_reader/oculus_reader/reader.py
-	echo cleaning up threads ...
-	sleep 5
-	adb kill-server
-fi
+# 	echo $ROOT_DIR
+# 	pip3 install -e $ROOT_DIR/droid/oculus_reader
+# 	python3 $ROOT_DIR/droid/oculus_reader/oculus_reader/reader.py
+# 	echo cleaning up threads ...
+# 	sleep 5
+# 	adb kill-server
+# fi
 
 # expose parameters as environment variables
 echo -e "Set environment variables from parameters file \n"
