@@ -16,6 +16,46 @@ from droid.robot_ik.robot_ik_solver import RobotIKSolver
 
 
 class FrankaRobot:
+    def __init__(self):
+        self._robot = RobotInterface(ip_address="172.16.0.3")
+        self._ik_solver = RobotIKSolver()
+        self._controller_not_loaded = False
+
+    def move_to_joint_positions(self, joint_positions, time_to_go=2.0):
+        """
+        Move the robot to the specified joint positions.
+        :param joint_positions: List of joint positions to move to.
+        :param time_to_go: Time in seconds to reach the desired joint positions.
+        """
+        self._robot.move_to_joint_positions(joint_positions, time_to_go=time_to_go)
+    
+    def get_kp_gains(self):
+        """
+        Get the current proportional gains for the robot's joints.
+        :return: List of proportional gains for each joint.
+        """
+        return self._robot.Kq_default
+
+    def get_kd_gains(self):
+        """
+        Get the current derivative gains for the robot's joints.
+        :return: List of derivative gains for each joint.
+        """
+        return self._robot.Kqd_default
+    
+    def get_kx_gains(self):
+        """
+        Get the current stiffness gains for the robot's joints.
+        :return: List of stiffness gains for each joint.
+        """
+        return self._robot.Kx_default
+    def get_kxd_gains(self):
+        """
+        Get the current damping gains for the robot's joints.
+        :return: List of damping gains for each joint.
+        """
+        return self._robot.Kxd_default
+
     def launch_controller(self):
         try:
             self.kill_controller()
@@ -33,9 +73,9 @@ class FrankaRobot:
         time.sleep(5)
 
     def launch_robot(self):
-        self._robot = RobotInterface(ip_address="localhost")
-        self._gripper = GripperInterface(ip_address="localhost")
-        self._max_gripper_width = self._gripper.metadata.max_width
+        self._robot = RobotInterface(ip_address="172.16.0.3")
+        # self._gripper = GripperInterface(ip_address="localhost")
+        # self._max_gripper_width = self._gripper.metadata.max_width
         self._ik_solver = RobotIKSolver()
         self._controller_not_loaded = False
 
@@ -47,7 +87,7 @@ class FrankaRobot:
         action_dict = self.create_action_dict(command, action_space=action_space, gripper_action_space=gripper_action_space)
 
         self.update_joints(action_dict["joint_position"], velocity=False, blocking=blocking)
-        self.update_gripper(action_dict["gripper_position"], velocity=False, blocking=blocking)
+        # self.update_gripper(action_dict["gripper_position"], velocity=False, blocking=blocking)
 
         return action_dict
 
@@ -157,13 +197,13 @@ class FrankaRobot:
 
     def get_robot_state(self):
         robot_state = self._robot.get_robot_state()
-        gripper_position = self.get_gripper_position()
+        # gripper_position = self.get_gripper_position()
         pos, quat = self._robot.robot_model.forward_kinematics(torch.Tensor(robot_state.joint_positions))
         cartesian_position = pos.tolist() + quat_to_euler(quat.numpy()).tolist()
 
         state_dict = {
             "cartesian_position": cartesian_position,
-            "gripper_position": gripper_position,
+            # "gripper_position": gripper_position,
             "joint_positions": list(robot_state.joint_positions),
             "joint_velocities": list(robot_state.joint_velocities),
             "joint_torques_computed": list(robot_state.joint_torques_computed),
@@ -195,21 +235,21 @@ class FrankaRobot:
         action_dict = {"robot_state": robot_state}
         velocity = "velocity" in action_space
 
-        if gripper_action_space is None:
-            gripper_action_space = "velocity" if velocity else "position"
-        assert gripper_action_space in ["velocity", "position"]
+        # if gripper_action_space is None:
+        #     gripper_action_space = "velocity" if velocity else "position"
+        # assert gripper_action_space in ["velocity", "position"]
             
 
-        if gripper_action_space == "velocity":
-            action_dict["gripper_velocity"] = action[-1]
-            gripper_delta = self._ik_solver.gripper_velocity_to_delta(action[-1])
-            gripper_position = robot_state["gripper_position"] + gripper_delta
-            action_dict["gripper_position"] = float(np.clip(gripper_position, 0, 1))
-        else:
-            action_dict["gripper_position"] = float(np.clip(action[-1], 0, 1))
-            gripper_delta = action_dict["gripper_position"] - robot_state["gripper_position"]
-            gripper_velocity = self._ik_solver.gripper_delta_to_velocity(gripper_delta)
-            action_dict["gripper_delta"] = gripper_velocity
+        # if gripper_action_space == "velocity":
+        #     action_dict["gripper_velocity"] = action[-1]
+        #     gripper_delta = self._ik_solver.gripper_velocity_to_delta(action[-1])
+        #     gripper_position = robot_state["gripper_position"] + gripper_delta
+        #     action_dict["gripper_position"] = float(np.clip(gripper_position, 0, 1))
+        # else:
+        #     action_dict["gripper_position"] = float(np.clip(action[-1], 0, 1))
+        #     gripper_delta = action_dict["gripper_position"] - robot_state["gripper_position"]
+        #     gripper_velocity = self._ik_solver.gripper_delta_to_velocity(gripper_delta)
+        #     action_dict["gripper_delta"] = gripper_velocity
 
         if "cartesian" in action_space:
             if velocity:
@@ -230,16 +270,27 @@ class FrankaRobot:
             joint_delta = self._ik_solver.joint_velocity_to_delta(action_dict["joint_velocity"])
             action_dict["joint_position"] = (joint_delta + np.array(robot_state["joint_positions"])).tolist()
 
+        # if "joint" in action_space:
+        #     # NOTE: Joint to Cartesian has undefined dynamics due to IK
+        #     if velocity:
+        #         action_dict["joint_velocity"] = action[:-1]
+        #         joint_delta = self._ik_solver.joint_velocity_to_delta(action[:-1])
+        #         action_dict["joint_position"] = (joint_delta + np.array(robot_state["joint_positions"])).tolist()
+        #     else:
+        #         action_dict["joint_position"] = action[:-1]
+        #         joint_delta = np.array(action[:-1]) - np.array(robot_state["joint_positions"])
+        #         joint_velocity = self._ik_solver.joint_delta_to_velocity(joint_delta)
+        #         action_dict["joint_velocity"] = joint_velocity.tolist()
+
+        # action_dict = {"robot_state": robot_state}
         if "joint" in action_space:
-            # NOTE: Joint to Cartesian has undefined dynamics due to IK
-            if velocity:
-                action_dict["joint_velocity"] = action[:-1]
-                joint_delta = self._ik_solver.joint_velocity_to_delta(action[:-1])
-                action_dict["joint_position"] = (joint_delta + np.array(robot_state["joint_positions"])).tolist()
-            else:
-                action_dict["joint_position"] = action[:-1]
-                joint_delta = np.array(action[:-1]) - np.array(robot_state["joint_positions"])
-                joint_velocity = self._ik_solver.joint_delta_to_velocity(joint_delta)
-                action_dict["joint_velocity"] = joint_velocity.tolist()
+            robot_state = {}
+            robot_state["joint_positions"] = self._robot.get_joint_positions()
+            # print(action_dict["joint_position"])
+            action_dict = {}
+
+            action_dict["joint_velocity"] = action[:-1]
+            joint_delta = self._ik_solver.joint_velocity_to_delta(action[:-1])
+            action_dict["joint_position"] = (joint_delta + np.array(robot_state["joint_positions"])).tolist()
 
         return action_dict

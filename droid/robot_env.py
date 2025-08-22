@@ -10,6 +10,7 @@ from droid.misc.parameters import hand_camera_id, nuc_ip
 from droid.misc.server_interface import ServerInterface
 from droid.misc.time import time_ms
 from droid.misc.transformations import change_pose_frame
+from droid.franka.robot import FrankaRobot
 
 
 class RobotEnv(gym.Env):
@@ -30,21 +31,24 @@ class RobotEnv(gym.Env):
         self.DoF = 7 if ("cartesian" in action_space) else 8
         self.control_hz = 15
 
-        if nuc_ip is None:
-            from franka.robot import FrankaRobot
+        # from franka.robot import FrankaRobot
+        self._robot = FrankaRobot()
 
-            self._robot = FrankaRobot()
-        else:
-            self._robot = ServerInterface(ip_address=nuc_ip)
+        # if nuc_ip is None:
+        #     from franka.robot import FrankaRobot
 
-        # Create Cameras
-        self.camera_reader = MultiCameraWrapper(camera_kwargs)
-        self.calibration_dict = load_calibration_info()
-        self.camera_type_dict = camera_type_dict
+        #     self._robot = FrankaRobot()
+        # else:
+        #     self._robot = ServerInterface(ip_address=nuc_ip)
 
-        # Reset Robot
-        if do_reset:
-            self.reset()
+        # # Create Cameras
+        # self.camera_reader = MultiCameraWrapper(camera_kwargs)
+        # self.calibration_dict = load_calibration_info()
+        # self.camera_type_dict = camera_type_dict
+
+        # # Reset Robot
+        # if do_reset:
+        #     self.reset()
 
     def step(self, action):
         # Check Action
@@ -61,6 +65,26 @@ class RobotEnv(gym.Env):
 
         # Return Action Info
         return action_info
+
+    def get_joint_positions(self):
+        return self._robot.get_joint_positions()
+
+    def get_ee_pose(self):
+        return self._robot.get_ee_pose()
+    def go_home(self):
+        self._robot.move_to_joint_positions(self.reset_joints, time_to_go=2.0)
+
+    def get_kp_gains(self):
+        return self._robot.get_kp_gains()
+
+    def get_kd_gains(self):
+        return self._robot.get_kd_gains()
+    
+    def get_kx_gains(self):
+        return self._robot.get_kx_gains()
+
+    def get_kxd_gains(self):
+        return self._robot.get_kxd_gains()
 
     def reset(self, randomize=False):
         self._robot.update_gripper(0, velocity=False, blocking=True)
